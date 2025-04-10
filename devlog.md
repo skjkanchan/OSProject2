@@ -10,3 +10,9 @@ I am now ending this project session. I added all the sample code and looked int
 # April 10 4:45pm
 a. I am starting a new project session. After watching the Project 2 overview video again and looking through the sample code I understand the project better. We have different threads, some of the Teller class and some of the Customer class. We are going to use signals to tell customers when the teller is ready. This is possibly using semaphores the way SignalDemo did but some comments said the project has too many threads for that so I will have to look more into that. 
 b. This session I plan on creating some Tellers and some Customers and just working on the communication there. 
+
+
+# April 10 6:25pm
+I am now ending this project session. I created the Teller and Customer Class and the Transaction Types. Now Threads can start running for both, and the program is randomly choosing a transaction type. Next session I plan on integrating the semaphores to start communication between tellers and customers. 
+
+New thoughts: Semaphores are what you use to signal when tellers and customers and ready. 
