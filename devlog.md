@@ -26,3 +26,6 @@ I am now ended this project session. I was working on the communication between 
 # April 11 11:30am
 a. I am now starting a new project session. I don't have any new thoughts on this project except that I'm a little worried about the complexity and the fact that I'm running into a lot of errors. 
 b. This session I plan on continuing the communication between the Teller and the Customer and I want to get the customer to introudce themselves to the Teller. 
+
+# April 11 1:47pm
+The communication of the customers introducing themselves seems to be working so I will now push my current code.
