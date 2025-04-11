@@ -19,3 +19,10 @@ I am now ending this project session. I created the Teller and Customer Class an
 # April 10 8:36pm
 a. I am starting a new project session. Since last project session I have learned how semaphores will act as signals throughout the program to let tellers and customers know when they are ready.
 b. This session I plan on working on the communication between the tellers and the customers and getting the line function for customers seeing tellers to be functional. 
+
+# April 10 10:31pm
+I am now ended this project session. I was working on the communication between the Teller and Customer and it still isn't working. Currently I'm trying to get the customer to introduce themselves but I'm getting lots of errors. I will try again in tomorrow's project session. 
+
+# April 11 11:30am
+a. I am now starting a new project session. I don't have any new thoughts on this project except that I'm a little worried about the complexity and the fact that I'm running into a lot of errors. 
+b. This session I plan on continuing the communication between the Teller and the Customer and I want to get the customer to introudce themselves to the Teller. 
