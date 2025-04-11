@@ -15,4 +15,7 @@ b. This session I plan on creating some Tellers and some Customers and just work
 # April 10 6:25pm
 I am now ending this project session. I created the Teller and Customer Class and the Transaction Types. Now Threads can start running for both, and the program is randomly choosing a transaction type. Next session I plan on integrating the semaphores to start communication between tellers and customers. 
 
-New thoughts: Semaphores are what you use to signal when tellers and customers and ready. 
+
+# April 10 8:36pm
+a. I am starting a new project session. Since last project session I have learned how semaphores will act as signals throughout the program to let tellers and customers know when they are ready.
+b. This session I plan on working on the communication between the tellers and the customers and getting the line function for customers seeing tellers to be functional. 
