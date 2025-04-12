@@ -15,6 +15,9 @@ public class Bank {
     static Semaphore tellerReady = new Semaphore(0);
     static Semaphore customerReady = new Semaphore(0);
 
+    static public Semaphore gLock = new Semaphore(1);
+    static public int gCount = 0; // Data shared amongst all the threads
+
     // Transaction types
     enum TransactionType {
         DEPOSIT, WITHDRAW, CHECK_BALANCE
@@ -33,26 +36,33 @@ public class Bank {
         public void run() {
             System.out.println("Teller " + tellerId + " has started their shift");
 
-            while(!isInterrupted()) {
+            //while(!isInterrupted()) {
             //repeat until all customers served
             //for (int i = 0; i < 5; i++) {
                 try {
+
+                    gLock.acquire(); //The first thread can continue, everyone else must block
+
                     //Teller sends signal that its ready
-                    System.out.println("Teller " + tellerId + " is ready to serve");
-                    tellerReady.release();
+                    // System.out.println("Teller " + tellerId + " is ready to serve");
+                    // tellerReady.release();
+
+                    System.out.println("Thread " + tellerId + " has count " + gCount);
+                    gCount++;
+                    gLock.release(); //Allows one of the blocked threads to continue
 
                     //wait for customer to approach
-                    customerReady.acquire();
-                    System.out.println("Teller " + tellerId + " sees Customer");
+                    // customerReady.acquire();
+                    // System.out.println("Teller " + tellerId + " sees Customer");
 
                     //Short delay to simulate interaction
-                    Thread.sleep(300);
+                    //Thread.sleep(300);
 
                 } catch (Exception e) {
                     System.out.println("Teller " + tellerId + " is ending their shift");
                     return;
                 }
-            }
+            //}
         }
 
 
@@ -128,19 +138,19 @@ public class Bank {
         }
 
 
-        Customer[] customers = new Customer[5];
-        for (int i = 0; i < 5; i++) {
-            TransactionType type = TransactionType.values()[random.nextInt(TransactionType.values().length)];
-            customers[i] = new Customer(i + 1, type);
-            customers[i].start();
-            //Thread.sleep(random.nextInt(1000) + 500);
-        }
+        // Customer[] customers = new Customer[5];
+        // for (int i = 0; i < 5; i++) {
+        //     TransactionType type = TransactionType.values()[random.nextInt(TransactionType.values().length)];
+        //     customers[i] = new Customer(i + 1, type);
+        //     customers[i].start();
+        //     //Thread.sleep(random.nextInt(1000) + 500);
+        // }
 
 
-        // Wait for all customers to finish
-        for (Customer customer : customers) {
-            customer.join();
-        }
+        // // Wait for all customers to finish
+        // for (Customer customer : customers) {
+        //     customer.join();
+        // }
         
         // End teller shifts
         for (Teller teller : tellers) {

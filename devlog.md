@@ -28,4 +28,15 @@ a. I am now starting a new project session. I don't have any new thoughts on thi
 b. This session I plan on continuing the communication between the Teller and the Customer and I want to get the customer to introudce themselves to the Teller. 
 
 # April 11 1:47pm
-The communication of the customers introducing themselves seems to be working so I will now push my current code.
+I am now ending this project session. The communication of the customers introducing themselves seems to be working so I will now push my current code. Next session I plan to flesh out the communication better so it's more back and forth. 
+
+# April 11 11:12pm
+a. I am starting a new project session. Since last project session I dont really have any new thoughts, but I am hoping I can get the communication figured out as that seems to be the main aspect of this project. 
+b. This project session I plan on fleshing out the communication more. Right now customers can introduce themselves to the Tellers, but tellers cannot respond and don't have access to the customer's information. This is what I want to accomplish. 
+
+# April 12 2:14am
+I am now ending this project session. The Tellers now have access to the customer's id and their transaction type. I also ended up running into an issue with the program terminating and the customers being served out of order. I ended up fixing this issue so now customers are being served in order and I also implemented mutual exclusion to access of shared data. I also ended up duplicating ThreadDemo.java to ThreadTest.java and am now working on my code there as Bank.java was giving me lots of isses. 
+
+
+
+
