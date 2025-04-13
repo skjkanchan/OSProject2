@@ -3,6 +3,7 @@
 a. This is my first addition to the devlog. This project seems like it will be more complex than the first as it uses multithreading and semiphores. I have worked with these concepts a little before in my UNIX class, however not very deeply. Additionally, that was using C but I plan on using Java for this project as I am more familiar with it. 
 b. This session I plan on importing the sample code from elearning and trying to just understand how it works. I will also setup my github repo and push this devlog. Additionally, I intend to add the file for this project. 
 
+
 # April 9 10:42pm
 I am now ending this project session. I added all the sample code and looked into it more to understand how it works. I also finished making my github repo and cloning it and I pushed this devlog. I also created the Bank.java file for the project. I was able to accomplish everything I intended. Next session I plan on looking at Project Overview video again and then beginning the code for the project. 
 
@@ -55,6 +56,10 @@ Currently still in this project session. I added a new semaphore bankOpen to mak
 
 # April 13 4:04pm
 I am still in the same project session. I have now added the functionalities for the teller asking manager for withdrawal permission and the access to the safe. I also added the properly formatted print statements for thse functionalities. I also added the wait times necessary throughout the program and the print statements surrounding those wait times. I also added print statements for leaving the bank, going to door, entering bank, etc. I think I finished all the functionalities of the program and it seems to be working for 2 tellers and 2 customers. I am now going to make a commit and push the code I have so far before going back and polishing everything and seeing how it works with 3 tellers and 50 customers. 
+
+
+# April 13 4:54pm
+I am still in this project session. I changed a few things like adding a try catch around the code in main for the semaphore functionalities there. I also moved the check for all tellers ready from outside the loop in the teller class to inside the loop. This is so that the tellers can say they are ready whenever the finish a transaction with the previous customer. Now I'm going to commit my current code, then test the code with 3 tellers and 50 customers.
 
 
 

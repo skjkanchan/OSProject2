@@ -34,19 +34,19 @@ public class ThreadTest {
 
         public void run() {
             try {
-                System.out.println("Teller " + id + " []: ready to serve");
-
-                //make sure all tellers are ready before opening bank
-                dataLock.acquire();;
-                tellersReady++;
-                if (tellersReady == numTellers) {
-                    //open the bank
-                    bankOpen.release();
-                }
-
-                dataLock.release(); 
-                
                 while (true) {
+
+                    System.out.println("Teller " + id + " []: ready to serve");
+
+                    //make sure all tellers are ready before opening bank
+                    dataLock.acquire();;
+                    tellersReady++;
+                    if (tellersReady == numTellers) {
+                        //open the bank
+                        bankOpen.release();
+                    }
+
+                    dataLock.release(); 
 
                     //wait for customer to signal they are ready
                     System.out.println("Teller " + id + " []: waiting for customer");
@@ -248,52 +248,56 @@ public class ThreadTest {
         }
 
         
-        
-
-        //create Tellers
-        Teller[] tellers = new Teller[numTellers];
-        for (int i = 0; i < numTellers; i++) {
-            tellers[i] = new Teller(i);
-            tellers[i].start();
-        }
-
         try {
+            //create Tellers
+            Teller[] tellers = new Teller[numTellers];
+            for (int i = 0; i < numTellers; i++) {
+                tellers[i] = new Teller(i);
+                tellers[i].start();
+            }
+            
             //wait for all tellers to be ready before opening bank
             bankOpen.acquire();
+
+            //create Customers
+            Customer[] customers = new Customer[numCustomers];
+            for (int i = 0; i < numCustomers; i++) {
+                String transactionType = transactions.get(random.nextInt(transactions.size()));
+                customerTransactions[i] = transactionType;
+                customers[i] = new Customer(i, transactionType);
+                customers[i].start();
+            }
+
+            allCustomersCreated = true;
+
+            //wait for customer threads to exit
+            for (int i = 0; i < numCustomers; i++) {
+                try {
+                    customers[i].join();
+                } catch (InterruptedException e) {
+                    System.err.println("Error joining with Customer " + i + ": " + e);
+                }
+            }
+
+            System.out.println("All customers have been processed.");
+
+            //wait for teller threads to exit
+            for (int i = 0; i < numTellers; i++) {
+                try {
+                    tellers[i].join();
+                } catch (InterruptedException e) {
+                    System.err.println("Error joining with Teller " + i + ": " + e);
+                }
+            }
+
+
+            System.out.println("All tellers have finished their shifts. Bank is closed.");
+
+
+            
         } catch (InterruptedException ex) {
         }
-
-        //create Customers
-        Customer[] customers = new Customer[numCustomers];
-        for (int i = 0; i < numCustomers; i++) {
-            String transactionType = transactions.get(random.nextInt(transactions.size()));
-            customerTransactions[i] = transactionType;
-            customers[i] = new Customer(i, transactionType);
-            customers[i].start();
-        }
-
-        allCustomersCreated = true;
-
-        //wait for customer threads to exit
-        for (int i = 0; i < numCustomers; i++) {
-            try {
-                customers[i].join();
-            } catch (InterruptedException e) {
-                System.err.println("Error joining with Customer " + i + ": " + e);
-            }
-        }
         
-        System.out.println("All customers have been processed.");
-
-        //wait for teller threads to exit
-        for (int i = 0; i < numTellers; i++) {
-            try {
-                tellers[i].join();
-            } catch (InterruptedException e) {
-                System.err.println("Error joining with Teller " + i + ": " + e);
-            }
-        }
         
-        System.out.println("All tellers have finished their shifts. Bank is closed.");
     }
 }
