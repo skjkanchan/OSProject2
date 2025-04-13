@@ -50,5 +50,8 @@ I am now ending this project session. I actually pivoted from doing manager appr
 a. I am starting a new project session. Since last session I have thought about how the project will be continued and I think it will be more simple from here on out. Now that I've figured out the communication, sharing of variables, and access to data using semaphores I just need to repeat it for aspects like the manager, and safe. 
 b. This project session I plan to implement the transaction aspect including the interaction with the manager and accessing the safe. I will do this using new semaphores to make sure only one teller can talk to the manager at once, and only 2 tellers can acesss the safe at once. 
 
+# April 13 3:17pm
+Currently still in this project session. I added a new semaphore bankOpen to make sure that the bank is only open after all tellers are ready. It blocks customers from entering the bank until the number of tellers ready to serve = the total number of tellers. 
+
 
 
