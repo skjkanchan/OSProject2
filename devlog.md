@@ -64,5 +64,8 @@ I am still in this project session. I changed a few things like adding a try cat
 # April 13 5:41pm
 I am continuing this project session. I ran into some termination issues when running the code with 3 tellers and 50 customers but I was able to fix that by adding a release() statement for one of the semaphores. Now my project is complete and working for 50 customers and 3 tellers. I'm going to delete some files, then rename ThreadTest.java to Bank.java and commit my code. But, I will make a commit now for what I have so far.
 
+# April 13 6:17pm
+I am now going to rename ThreadTest to Bank.java before I work on my README and make my final commit. 
+
 
 

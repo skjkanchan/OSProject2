@@ -2,7 +2,7 @@ import java.util.ArrayList;
 import java.util.Random;
 import java.util.concurrent.Semaphore;
 
-public class ThreadTest {
+public class Bank {
     static Random random = new Random();
     
     //semaphores
