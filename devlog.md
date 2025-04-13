@@ -37,6 +37,10 @@ b. This project session I plan on fleshing out the communication more. Right now
 # April 12 2:14am
 I am now ending this project session. The Tellers now have access to the customer's id and their transaction type. I also ended up running into an issue with the program terminating and the customers being served out of order. I ended up fixing this issue so now customers are being served in order and I also implemented mutual exclusion to access of shared data. I also ended up duplicating ThreadDemo.java to ThreadTest.java and am now working on my code there as Bank.java was giving me lots of isses. 
 
+# April 12 7:14pm
+a. I am starting a new project session. I don't really have any new thoughts since the last session, but I do understand how semaphore's work better than before last session.
+b. This project session I plan on implementing part of the actual transaction. This includes getting the manager approval and entering the safe. I'm not sure if I will finish all of this during this project session, but I plan to do as much as I can. 
+
 
 
 
