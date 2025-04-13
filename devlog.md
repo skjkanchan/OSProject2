@@ -61,5 +61,8 @@ I am still in the same project session. I have now added the functionalities for
 # April 13 4:54pm
 I am still in this project session. I changed a few things like adding a try catch around the code in main for the semaphore functionalities there. I also moved the check for all tellers ready from outside the loop in the teller class to inside the loop. This is so that the tellers can say they are ready whenever the finish a transaction with the previous customer. Now I'm going to commit my current code, then test the code with 3 tellers and 50 customers.
 
+# April 13 5:41pm
+I am continuing this project session. I ran into some termination issues when running the code with 3 tellers and 50 customers but I was able to fix that by adding a release() statement for one of the semaphores. Now my project is complete and working for 50 customers and 3 tellers. I'm going to delete some files, then rename ThreadTest.java to Bank.java and commit my code. But, I will make a commit now for what I have so far.
+
 
 

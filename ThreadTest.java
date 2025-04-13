@@ -10,14 +10,16 @@ public class ThreadTest {
     static public Semaphore lineLock = new Semaphore(1); // For accessing the queue safely
     static public Semaphore safeLock = new Semaphore(2); // Safe allows 2 tellers at a time
     static public Semaphore bankOpen = new Semaphore(0); // For controlling when customers can enter bank
+    static public Semaphore bankClosedLock = new Semaphore(1); 
     static public Semaphore[] customerReady = null; // Array of semaphores indicating customer readiness
     static public Semaphore[] tellerAvailable = null; // Array of semaphores indicating teller availability
     static public Semaphore[] customerDone = null; // Signals that customer is done with transaction
     static public Semaphore managerLock = new Semaphore(1); // Only one teller can talk to manager at a time
     
+    static public boolean bankClosed = false;
     static public int customersServed = 0;
-    static public int numTellers = 2;
-    static public int numCustomers = 2;
+    static public int numTellers = 3;
+    static public int numCustomers = 5;
     static public int tellersReady = 0;
     static Random random = new Random();
     static public String[] customerTransactions = new String[numCustomers];
@@ -36,10 +38,17 @@ public class ThreadTest {
             try {
                 while (true) {
 
-                    System.out.println("Teller " + id + " []: ready to serve");
-
+                    dataLock.acquire();
+                    if (customersServed < numCustomers) {
+                        System.out.println("Teller " + id + " []: ready to serve");
+                        System.out.println("Teller " + id + " []: waiting for customer");
+                    }
+                    dataLock.release();
+                    
+                    
+                    
                     //make sure all tellers are ready before opening bank
-                    dataLock.acquire();;
+                    dataLock.acquire();
                     tellersReady++;
                     if (tellersReady == numTellers) {
                         //open the bank
@@ -49,15 +58,17 @@ public class ThreadTest {
                     dataLock.release(); 
 
                     //wait for customer to signal they are ready
-                    System.out.println("Teller " + id + " []: waiting for customer");
                     tellerAvailable[id].acquire();
-                    
+
                     //check if all customers have been served, if so end the loop
                     lineLock.acquire();
-                    if (waitingCustomers.isEmpty() && allCustomersCreated) {
+                    bankClosedLock.acquire();
+                    if (bankClosed || (waitingCustomers.isEmpty() && allCustomersCreated)) {
+                        bankClosedLock.release();
                         lineLock.release();
                         break;
                     }
+                    bankClosedLock.release();
                     
                     //If no customers in queue yet, release lock and signal for customers again
                     if (waitingCustomers.isEmpty()) {
@@ -73,11 +84,12 @@ public class ThreadTest {
                     lineLock.release();
                     
                     //signal to customer that teller is ready to interact with customer
-                    System.out.println("Teller " + id + " [Customer " + customerIndex + "]: serving a customer");
                     customerReady[customerIndex].release();
                     
                     //wait for customer to introduce themselves
                     customerDone[customerIndex].acquire();
+                    System.out.println("Teller " + id + " [Customer " + customerIndex + "]: serving a customer");
+
                     
                     //ask customer for transaction
                     System.out.println("Teller " + id + " [Customer " + customerIndex + "]: asks for transaction");
@@ -121,6 +133,7 @@ public class ThreadTest {
 
                     //leave safe
                     System.out.println("Teller " + id + " [Customer " + customerIndex + "]: leaving safe");
+                    safeLock.release();
 
                     //finishes transaction
                     System.out.println("Teller " + id + " [Customer " + customerIndex + "]: finishes " + transaction + " transaction");
@@ -130,6 +143,12 @@ public class ThreadTest {
 
                     //wait for customer to leave
                     System.out.println("Teller " + id + " [Customer " + customerIndex + "]: waiting for customer to leave");
+                    customerDone[customerIndex].acquire();
+
+                    // Track that another customer has been served
+                    dataLock.acquire();
+                    customersServed++;
+                    dataLock.release();
                     
                     // Wait for next customer
                     tellerAvailable[id].release();
@@ -213,6 +232,7 @@ public class ThreadTest {
 
                 //customer leaves teller
                 System.out.println("Customer " + id + " [Teller " + myTeller + "]: leaves teller");
+                customerDone[id].release();
 
                 //customer goes to door and leaves bank
                 System.out.println("Customer " + id + " []: goes to door");
@@ -246,58 +266,69 @@ public class ThreadTest {
         for (int i = 0; i < numTellers; i++) {
             tellerAvailable[i] = new Semaphore(0);
         }
-
+        
+        //create Tellers
+        Teller[] tellers = new Teller[numTellers];
+        for (int i = 0; i < numTellers; i++) {
+            tellers[i] = new Teller(i);
+            tellers[i].start();
+        }
         
         try {
-            //create Tellers
-            Teller[] tellers = new Teller[numTellers];
-            for (int i = 0; i < numTellers; i++) {
-                tellers[i] = new Teller(i);
-                tellers[i].start();
-            }
-            
             //wait for all tellers to be ready before opening bank
             bankOpen.acquire();
+        } catch (InterruptedException ex) {
+            System.err.println("Error with Semaphore bankOpen: " + ex);
+        }
 
-            //create Customers
-            Customer[] customers = new Customer[numCustomers];
-            for (int i = 0; i < numCustomers; i++) {
-                String transactionType = transactions.get(random.nextInt(transactions.size()));
-                customerTransactions[i] = transactionType;
-                customers[i] = new Customer(i, transactionType);
-                customers[i].start();
+       
+        //create Customers
+        Customer[] customers = new Customer[numCustomers];
+        for (int i = 0; i < numCustomers; i++) {
+            String transactionType = transactions.get(random.nextInt(transactions.size()));
+            customerTransactions[i] = transactionType;
+            customers[i] = new Customer(i, transactionType);
+            customers[i].start();
+        }
+
+        allCustomersCreated = true;
+
+        //wait for customer threads to exit
+        for (int i = 0; i < numCustomers; i++) {
+            try {
+                customers[i].join();
+            } catch (InterruptedException e) {
+                System.err.println("Error joining with Customer " + i + ": " + e);
             }
+        }
 
-            allCustomersCreated = true;
+        System.out.println("All customers have been served. Bank is closed.");
 
-            //wait for customer threads to exit
-            for (int i = 0; i < numCustomers; i++) {
-                try {
-                    customers[i].join();
-                } catch (InterruptedException e) {
-                    System.err.println("Error joining with Customer " + i + ": " + e);
-                }
-            }
-
-            System.out.println("All customers have been processed.");
-
-            //wait for teller threads to exit
-            for (int i = 0; i < numTellers; i++) {
-                try {
-                    tellers[i].join();
-                } catch (InterruptedException e) {
-                    System.err.println("Error joining with Teller " + i + ": " + e);
-                }
-            }
-
-
-            System.out.println("All tellers have finished their shifts. Bank is closed.");
-
-
-            
+        try {
+            bankClosedLock.acquire();
+            bankClosed = true;
+            bankClosedLock.release();
         } catch (InterruptedException ex) {
         }
         
-        
+        // Signal all tellers to check if they should terminate
+        for (int i = 0; i < numTellers; i++) {
+            tellerAvailable[i].release();
+        }
+
+        //wait for teller threads to exit
+        for (int i = 0; i < numTellers; i++) {
+            try {
+                tellers[i].join();
+            } catch (InterruptedException e) {
+                System.err.println("Error joining with Teller " + i + ": " + e);
+            }
+        }
+
+
+        //System.out.println("All tellers have finished their shifts. Bank is closed.");
+
+
+    
     }
 }
