@@ -42,5 +42,13 @@ a. I am starting a new project session. I don't really have any new thoughts sin
 b. This project session I plan on implementing part of the actual transaction. This includes getting the manager approval and entering the safe. I'm not sure if I will finish all of this during this project session, but I plan to do as much as I can. 
 
 
+# April 13 12:04am
+I am now ending this project session. I actually pivoted from doing manager approval to fully fleshing out the code I currently had. This included making the print statements the correct format and giving each teller access to the customer ID through a shared array. This made it easier to pass information from customer through teller when the customer introduces themselves. To accomplish this I ended up creating more semaphores like doorLock to make sure only 2 customers are entering the door, i chaned customerQueue to lineLock to be a more intuitive name, and I created arrays of semaphores to signal when customers are ready, done, and when tellers are available.  
+
+
+# April 13 2:43pm
+a. I am starting a new project session. Since last session I have thought about how the project will be continued and I think it will be more simple from here on out. Now that I've figured out the communication, sharing of variables, and access to data using semaphores I just need to repeat it for aspects like the manager, and safe. 
+b. This project session I plan to implement the transaction aspect including the interaction with the manager and accessing the safe. I will do this using new semaphores to make sure only one teller can talk to the manager at once, and only 2 tellers can acesss the safe at once. 
+
 
 
