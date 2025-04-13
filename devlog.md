@@ -53,5 +53,8 @@ b. This project session I plan to implement the transaction aspect including the
 # April 13 3:17pm
 Currently still in this project session. I added a new semaphore bankOpen to make sure that the bank is only open after all tellers are ready. It blocks customers from entering the bank until the number of tellers ready to serve = the total number of tellers. 
 
+# April 13 4:04pm
+I am still in the same project session. I have now added the functionalities for the teller asking manager for withdrawal permission and the access to the safe. I also added the properly formatted print statements for thse functionalities. I also added the wait times necessary throughout the program and the print statements surrounding those wait times. I also added print statements for leaving the bank, going to door, entering bank, etc. I think I finished all the functionalities of the program and it seems to be working for 2 tellers and 2 customers. I am now going to make a commit and push the code I have so far before going back and polishing everything and seeing how it works with 3 tellers and 50 customers. 
+
 
 

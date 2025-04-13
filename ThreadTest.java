@@ -3,24 +3,26 @@ import java.util.Random;
 import java.util.concurrent.Semaphore;
 
 public class ThreadTest {
-    static Random random = new Random();
-
-    //Semaphores
-    static public Semaphore dataLock = new Semaphore(1); //to protect access to shared data
-    static public Semaphore doorLock = new Semaphore(2); //door allows 2 customers at a time
-    static public Semaphore lineLock = new Semaphore(1); //for accessing the line safely
-    static public Semaphore[] customerReady = null; //array of semaphores signalling when customers are ready
-    static public Semaphore[] tellerAvailable = null; //arry of semaphores signalling when tellers are available
-    static public Semaphore[] customerDone = null; //array of semaphores signalling that customer is done with transaction
     
-    //Shared Data
-    static public int customerCount = 0;
+    
+    static public Semaphore dataLock = new Semaphore(1);
+    static public Semaphore doorLock = new Semaphore(2); // Door allows 2 customers at a time
+    static public Semaphore lineLock = new Semaphore(1); // For accessing the queue safely
+    static public Semaphore safeLock = new Semaphore(2); // Safe allows 2 tellers at a time
+    static public Semaphore bankOpen = new Semaphore(0); // For controlling when customers can enter bank
+    static public Semaphore[] customerReady = null; // Array of semaphores indicating customer readiness
+    static public Semaphore[] tellerAvailable = null; // Array of semaphores indicating teller availability
+    static public Semaphore[] customerDone = null; // Signals that customer is done with transaction
+    static public Semaphore managerLock = new Semaphore(1); // Only one teller can talk to manager at a time
+    
     static public int customersServed = 0;
-    static public int numTellers = 1;
+    static public int numTellers = 2;
     static public int numCustomers = 2;
-    static public String[] customerTransactions = new String[numCustomers]; //to keep track of customers and their transactions
-    static public ArrayList<Integer> waitingCustomers = new ArrayList<>(); //line of customers
-    static public int[] customerToTeller = new int[numCustomers]; //to keep track of which tellers are serving which customers
+    static public int tellersReady = 0;
+    static Random random = new Random();
+    static public String[] customerTransactions = new String[numCustomers];
+    static public ArrayList<Integer> waitingCustomers = new ArrayList<>(); // Queue of waiting customers
+    static public int[] customerToTeller = new int[numCustomers]; // Maps customers to their tellers
 
 
     static public class Teller extends Thread {
@@ -32,42 +34,105 @@ public class ThreadTest {
 
         public void run() {
             try {
-                System.out.println("Teller " + id + " has started their shift.");
+                System.out.println("Teller " + id + " []: ready to serve");
+
+                //make sure all tellers are ready before opening bank
+                dataLock.acquire();;
+                tellersReady++;
+                if (tellersReady == numTellers) {
+                    //open the bank
+                    bankOpen.release();
+                }
+
+                dataLock.release(); 
                 
                 while (true) {
-                    //Wait until customer signals this teller
+
+                    //wait for customer to signal they are ready
+                    System.out.println("Teller " + id + " []: waiting for customer");
                     tellerAvailable[id].acquire();
                     
-                    //Check if all customers served - end condition
+                    //check if all customers have been served, if so end the loop
                     lineLock.acquire();
                     if (waitingCustomers.isEmpty() && allCustomersCreated) {
                         lineLock.release();
                         break;
                     }
                     
-                    //If no customers in queue yet, release lock and try again
+                    //If no customers in queue yet, release lock and signal for customers again
                     if (waitingCustomers.isEmpty()) {
                         lineLock.release();
-                        tellerAvailable[id].release(); // Make teller available again
-                        Thread.sleep(50);
+                        tellerAvailable[id].release(); 
+                        Thread.sleep(50); //wait a little before checking for customers again
                         continue;
                     }
                     
-                    //Get next customer
+                    //get first customer from the line
                     int customerIndex = waitingCustomers.remove(0);
                     customerToTeller[customerIndex] = id;
                     lineLock.release();
                     
-                    //Signal customer that teller is ready
+                    //signal to customer that teller is ready to interact with customer
                     System.out.println("Teller " + id + " [Customer " + customerIndex + "]: serving a customer");
                     customerReady[customerIndex].release();
                     
-                    //Wait for customer to introduce themselves
+                    //wait for customer to introduce themselves
                     customerDone[customerIndex].acquire();
                     
-                    //teller is done with customer
-                    System.out.println("Teller " + id + " []: finishes transaction");
+                    //ask customer for transaction
+                    System.out.println("Teller " + id + " [Customer " + customerIndex + "]: asks for transaction");
+                    customerReady[customerIndex].release();
+                    
+                    //wait for customer to give transaction
+                    customerDone[customerIndex].acquire();
+                    
+                    //handle the transaction
+                    String transaction = customerTransactions[customerIndex];
+                    System.out.println("Teller " + id + " [Customer " + customerIndex + "]: handling " + transaction + " transaction");
 
+                    
+                    //for withdrawals, get manager permission
+                    if (transaction.equals("withdrawal")) {
+                        System.out.println("Teller " + id + " [Customer " + customerIndex + "]: going to manager");
+                        
+                        //only one teller can talk to the manager at a time
+                        managerLock.acquire();
+
+                        System.out.println("Teller " + id + " [Customer " + customerIndex + "]: getting manager's permission");
+
+                        //wait for teller to get permission (5-30ms)
+                        Thread.sleep(random.nextInt(26) + 5);
+                        
+                        System.out.println("Teller " + id + " [Customer " + customerIndex + "]: got manager's permission");
+                        
+                        // Done with manager
+                        managerLock.release();
+                    }
+                    
+                    //go to safe
+                    System.out.println("Teller " + id + " [Customer " + customerIndex + "]: going to safe");
+
+                    //enter safe, 2 at a time
+                    safeLock.acquire();
+                    System.out.println("Teller " + id + " [Customer " + customerIndex + "]: enter safe");
+
+                    //random transaction time from 10 to 50 ms
+                    Thread.sleep(random.nextInt(41) + 10);
+
+                    //leave safe
+                    System.out.println("Teller " + id + " [Customer " + customerIndex + "]: leaving safe");
+
+                    //finishes transaction
+                    System.out.println("Teller " + id + " [Customer " + customerIndex + "]: finishes " + transaction + " transaction");
+                    
+                    // Signal to customer that transaction is done
+                    customerReady[customerIndex].release();
+
+                    //wait for customer to leave
+                    System.out.println("Teller " + id + " [Customer " + customerIndex + "]: waiting for customer to leave");
+                    
+                    // Wait for next customer
+                    tellerAvailable[id].release();
                 }
             } catch(Exception e) {
                 System.err.println("Error in Teller " + id + ": " + e);
@@ -86,55 +151,70 @@ public class ThreadTest {
 
         public void run() {
             try {
-                //Decide transaction (already done in constructor)
-                if (transactionType.equals("Deposit")) {
+                //customer announces transaction (randomly chosen in constructor)
+                if (transactionType.equals("deposit")) {
                     System.out.println("Customer " + id + " []: wants to perform a deposit transaction");
                 } else {
                     System.out.println("Customer " + id + " []: wants to perform a withdrawal transaction");
                 }
                 
-                //Wait between 0-100ms
+                //wait 0-100ms before entering bank
                 Thread.sleep(random.nextInt(101));
 
-                //Go to bank
+                //custimer goes to bank
                 System.out.println("Customer " + id + " []: going to bank.");
 
-                //Wait at door (only 2 at a time)
+                //wait at door (only 2 at a time)
                 doorLock.acquire();
                 
-                //Enter bank
+                //customer enter bank
                 System.out.println("Customer " + id + " []: entering bank.");
 
-                //Get in line
+                //customer gets in line
                 System.out.println("Customer " + id + " []: getting in line.");
-                
-                //Get in line
+
                 lineLock.acquire();
                 waitingCustomers.add(id);
                 lineLock.release();
 
-                //Wait for teller
+                //customer waits in line for until teller is available
                 System.out.println("Customer " + id + " []: selecting a teller.");
 
-                //Signal all tellers that there's a customer waiting
+                //signal all tellers that a customer is waiting
                 for (int i = 0; i < numTellers; i++) {
                     tellerAvailable[i].release();
                 }
                 
-                //Wait until a teller is ready
+                //wait until a teller is ready
                 customerReady[id].acquire();
 
-                //Get assigned teller
+                //get available teller
                 int myTeller = customerToTeller[id];
 
-                //Select teller
                 System.out.println("Customer " + id + " [Teller " + myTeller + "]: selects teller");
                 
-                //Introduce self
+                //customer introduces themselves to teller
                 System.out.println("Customer " + id + " [Teller " + myTeller + "]: introduces itself");
                 customerDone[id].release();
 
-                //Leave bank
+                //customer waits for teller to ask for transaction
+                customerReady[id].acquire();
+
+                //customer asks for transaction
+                if (transactionType.equals("deposit")) {
+                    System.out.println("Customer " + id + " [Teller " + myTeller + "]: asks for deposit transaction");
+                } else {
+                    System.out.println("Customer " + id + " [Teller " + myTeller + "]: asks for withdrawal transaction");
+                }
+                customerDone[id].release();
+
+                //customer waits for transaction to complete
+                customerReady[id].acquire();
+
+                //customer leaves teller
+                System.out.println("Customer " + id + " [Teller " + myTeller + "]: leaves teller");
+
+                //customer goes to door and leaves bank
                 System.out.println("Customer " + id + " []: goes to door");
                 System.out.println("Customer " + id + " []: leaves the bank");
                 doorLock.release();
@@ -150,10 +230,10 @@ public class ThreadTest {
 
     static public void main(String[] args) {
         ArrayList<String> transactions = new ArrayList<>();
-        transactions.add("Withdrawal");
-        transactions.add("Deposit");
+        transactions.add("withdrawal");
+        transactions.add("deposit");
         
-        //Initialize semaphores
+        //initialize semaphores
         customerReady = new Semaphore[numCustomers];
         customerDone = new Semaphore[numCustomers];
         tellerAvailable = new Semaphore[numTellers];
@@ -167,16 +247,24 @@ public class ThreadTest {
             tellerAvailable[i] = new Semaphore(0);
         }
 
-        Customer[] customers = new Customer[numCustomers];
-        Teller[] tellers = new Teller[numTellers];
+        
+        
 
-        //Create Tellers
+        //create Tellers
+        Teller[] tellers = new Teller[numTellers];
         for (int i = 0; i < numTellers; i++) {
             tellers[i] = new Teller(i);
             tellers[i].start();
         }
 
-        //Create Customers
+        try {
+            //wait for all tellers to be ready before opening bank
+            bankOpen.acquire();
+        } catch (InterruptedException ex) {
+        }
+
+        //create Customers
+        Customer[] customers = new Customer[numCustomers];
         for (int i = 0; i < numCustomers; i++) {
             String transactionType = transactions.get(random.nextInt(transactions.size()));
             customerTransactions[i] = transactionType;
@@ -186,8 +274,7 @@ public class ThreadTest {
 
         allCustomersCreated = true;
 
-
-        //Wait for customer threads to exit
+        //wait for customer threads to exit
         for (int i = 0; i < numCustomers; i++) {
             try {
                 customers[i].join();
@@ -195,14 +282,10 @@ public class ThreadTest {
                 System.err.println("Error joining with Customer " + i + ": " + e);
             }
         }
-
-        for (int i = 0; i < numTellers; i++) {
-            tellerAvailable[i].release();
-        }
         
         System.out.println("All customers have been processed.");
 
-        //Wait for teller threads to exit
+        //wait for teller threads to exit
         for (int i = 0; i < numTellers; i++) {
             try {
                 tellers[i].join();
