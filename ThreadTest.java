@@ -2,89 +2,81 @@ import java.util.ArrayList;
 import java.util.Random;
 import java.util.concurrent.Semaphore;
 
-
-public class ThreadTest
-{
-    // Create a new semaphore initialized to 1
-    // Operations:
-    //   gLock.acquire()  -- This is the same thing as sem_wait
-    //        - Decrements the value, and blocks it value is less than zero
-    //        - A initial value of 1, means the first thread to call acquire will not block
-    //   gLock.release() -- This is the same thing as sem_signal
-    //        - Increments the value, and unblocks a blocked thread if the new value is zero or less
-    static public Semaphore dataLock = new Semaphore(1);
-    static public Semaphore customerQueue = new Semaphore(0);
-    static public int customerCount = 0; // Data shared amongst all the threads
-    static public int nextCustomer = 0;
-    static public int customersServed = 0; 
-
-    static public int numTellers = 3;
-    static public int numCustomers = 10;
+public class ThreadTest {
     static Random random = new Random();
-    static public String[] customerTransactions = new String[numCustomers];
 
+    //Semaphores
+    static public Semaphore dataLock = new Semaphore(1); //to protect access to shared data
+    static public Semaphore doorLock = new Semaphore(2); //door allows 2 customers at a time
+    static public Semaphore lineLock = new Semaphore(1); //for accessing the line safely
+    static public Semaphore[] customerReady = null; //array of semaphores signalling when customers are ready
+    static public Semaphore[] tellerAvailable = null; //arry of semaphores signalling when tellers are available
+    static public Semaphore[] customerDone = null; //array of semaphores signalling that customer is done with transaction
     
-    
-    
+    //Shared Data
+    static public int customerCount = 0;
+    static public int customersServed = 0;
+    static public int numTellers = 1;
+    static public int numCustomers = 2;
+    static public String[] customerTransactions = new String[numCustomers]; //to keep track of customers and their transactions
+    static public ArrayList<Integer> waitingCustomers = new ArrayList<>(); //line of customers
+    static public int[] customerToTeller = new int[numCustomers]; //to keep track of which tellers are serving which customers
 
 
-    // Class Inherits from the Thread class will be a specific thread
-    // On the project you will need one of these per type of thread
     static public class Teller extends Thread {
-        int id; //store the id of the entity in the simulation
+        int id;
 
         Teller(int id) {
             this.id = id;
         }
 
-        // You need to implement run() to customise the behavior of this thread type. 
-        // This will be called by the code when you call the start method that comes from the Thread class
         public void run() {
-
             try {
+                System.out.println("Teller " + id + " has started their shift.");
+                
                 while (true) {
-                    //wait for customer to arrive
-                    customerQueue.acquire();
-
-                    //get lock for shared data
-                    dataLock.acquire();
-
-                    // Check if all customers have been served
-                    if (customersServed >= numCustomers) {
-                        // Release semaphore for other waiting tellers
-                        customerQueue.release();
-                        dataLock.release();
-                        System.out.println("Teller " + id + " is ending their shift.");
-                        break;  // Exit if all customers are served
+                    //Wait until customer signals this teller
+                    tellerAvailable[id].acquire();
+                    
+                    //Check if all customers served - end condition
+                    lineLock.acquire();
+                    if (waitingCustomers.isEmpty() && allCustomersCreated) {
+                        lineLock.release();
+                        break;
                     }
-
-                    //serve next customer
-                    int currCustomer = nextCustomer++;
-                    System.out.println("Teller " + id + " is serving customer " + currCustomer + " with transaction " + customerTransactions[currCustomer]);
-                    customersServed++;
-
-                    //release lock
-                    dataLock.release();
-
-
+                    
+                    //If no customers in queue yet, release lock and try again
+                    if (waitingCustomers.isEmpty()) {
+                        lineLock.release();
+                        tellerAvailable[id].release(); // Make teller available again
+                        Thread.sleep(50);
+                        continue;
+                    }
+                    
+                    //Get next customer
+                    int customerIndex = waitingCustomers.remove(0);
+                    customerToTeller[customerIndex] = id;
+                    lineLock.release();
+                    
+                    //Signal customer that teller is ready
+                    System.out.println("Teller " + id + " [Customer " + customerIndex + "]: serving a customer");
+                    customerReady[customerIndex].release();
+                    
+                    //Wait for customer to introduce themselves
+                    customerDone[customerIndex].acquire();
+                    
+                    //teller is done with customer
+                    System.out.println("Teller " + id + " []: finishes transaction");
 
                 }
-                // gLock.acquire(); //The first thread can continue, everyone else must block
-                // // The above guarantees only one thread can execute the next three lines, at any one time
-                // System.out.println("Teller " + id + " has started their shift with customer " + customer);
-                // //System.out.println("Teller " + id + " " + gCount " has started their shift");
-                // //customer++;
-                // gLock.release(); //Allows one of the blocked threads to continue
-            }
-            catch(Exception e)
-            {
+            } catch(Exception e) {
                 System.err.println("Error in Teller " + id + ": " + e);
             }
         }
     }
 
     static public class Customer extends Thread {
-        int id; //store the id of the entity in the simulation
+        int id;
         String transactionType;
 
         Customer(int id, String type) {
@@ -92,90 +84,133 @@ public class ThreadTest
             this.transactionType = type;
         }
 
-        // You need to implement run() to customise the behavior of this thread type. 
-        // This will be called by the code when you call the start method that comes from the Thread class
         public void run() {
             try {
+                //Decide transaction (already done in constructor)
+                if (transactionType.equals("Deposit")) {
+                    System.out.println("Customer " + id + " []: wants to perform a deposit transaction");
+                } else {
+                    System.out.println("Customer " + id + " []: wants to perform a withdrawal transaction");
+                }
+                
+                //Wait between 0-100ms
+                Thread.sleep(random.nextInt(101));
 
-                //get lock for shared data
-                dataLock.acquire();
+                //Go to bank
+                System.out.println("Customer " + id + " []: going to bank.");
 
-                //customer enters bank
-                int myNum = customerCount++;
-                System.out.println("Customer " + myNum + " has entered the bank for transaction " + transactionType);
+                //Wait at door (only 2 at a time)
+                doorLock.acquire();
+                
+                //Enter bank
+                System.out.println("Customer " + id + " []: entering bank.");
 
-                //release lock
-                dataLock.release();
+                //Get in line
+                System.out.println("Customer " + id + " []: getting in line.");
+                
+                //Get in line
+                lineLock.acquire();
+                waitingCustomers.add(id);
+                lineLock.release();
 
-                //signal that customer is ready
-                customerQueue.release();
+                //Wait for teller
+                System.out.println("Customer " + id + " []: selecting a teller.");
 
+                //Signal all tellers that there's a customer waiting
+                for (int i = 0; i < numTellers; i++) {
+                    tellerAvailable[i].release();
+                }
+                
+                //Wait until a teller is ready
+                customerReady[id].acquire();
 
-                // cLock.acquire(); //The first thread can continue, everyone else must block
-                // // The above guarantees only one thread can execute the next three lines, at any one time
-                // System.out.println("Customer " + customer + " has entered the bank.");
-                // //System.out.println("Teller " + id + " " + gCount " has started their shift");
-                // customer++;
-                // gLock.release(); //Allows one of the blocked threads to continue
-            }
-            catch(Exception e)
-            {
+                //Get assigned teller
+                int myTeller = customerToTeller[id];
+
+                //Select teller
+                System.out.println("Customer " + id + " [Teller " + myTeller + "]: selects teller");
+                
+                //Introduce self
+                System.out.println("Customer " + id + " [Teller " + myTeller + "]: introduces itself");
+                customerDone[id].release();
+
+                //Leave bank
+                System.out.println("Customer " + id + " []: goes to door");
+                System.out.println("Customer " + id + " []: leaves the bank");
+                doorLock.release();
+                
+            } catch(Exception e) {
                 System.err.println("Error in Customer " + id + ": " + e);
+                doorLock.release();
             }
         }
     }
 
+    static public boolean allCustomersCreated = false;
+
     static public void main(String[] args) {
-        ArrayList<String> transactions = new ArrayList<String>();
+        ArrayList<String> transactions = new ArrayList<>();
         transactions.add("Withdrawal");
         transactions.add("Deposit");
+        
+        //Initialize semaphores
+        customerReady = new Semaphore[numCustomers];
+        customerDone = new Semaphore[numCustomers];
+        tellerAvailable = new Semaphore[numTellers];
+
+        for (int i = 0; i < numCustomers; i++) {
+            customerReady[i] = new Semaphore(0);
+            customerDone[i] = new Semaphore(0);
+        }
+
+        for (int i = 0; i < numTellers; i++) {
+            tellerAvailable[i] = new Semaphore(0);
+        }
 
         Customer[] customers = new Customer[numCustomers];
         Teller[] tellers = new Teller[numTellers];
 
         //Create Tellers
-        for(int i=0; i<numTellers; i++) {
-            // Create instances of your custom thread class
+        for (int i = 0; i < numTellers; i++) {
             tellers[i] = new Teller(i);
-            // Create and run the thread
-            tellers[i].start(); //At this point, thread i is running concurrently
+            tellers[i].start();
         }
-
 
         //Create Customers
-        
-        for(int i=0; i<numCustomers; i++) {
+        for (int i = 0; i < numCustomers; i++) {
             String transactionType = transactions.get(random.nextInt(transactions.size()));
             customerTransactions[i] = transactionType;
-            // Create instances of your custom thread class
             customers[i] = new Customer(i, transactionType);
-            // Create and run the thread
-            customers[i].start(); //At this point, thread i is running concurrently
+            customers[i].start();
         }
 
-        // Wait for customer threads to exit first
-        for(int i=0; i<numCustomers; i++) {
+        allCustomersCreated = true;
+
+
+        //Wait for customer threads to exit
+        for (int i = 0; i < numCustomers; i++) {
             try {
                 customers[i].join();
             } catch (InterruptedException e) {
                 System.err.println("Error joining with Customer " + i + ": " + e);
             }
         }
+
+        for (int i = 0; i < numTellers; i++) {
+            tellerAvailable[i].release();
+        }
+        
         System.out.println("All customers have been processed.");
 
-        // Release the customerQueue semaphore enough times to wake up all waiting tellers
-        for(int i=0; i<numTellers; i++) {
-            customerQueue.release();
-        }
-
-        // Wait for teller threads to exit
-        for(int i=0; i<numTellers; i++) {
+        //Wait for teller threads to exit
+        for (int i = 0; i < numTellers; i++) {
             try {
                 tellers[i].join();
             } catch (InterruptedException e) {
                 System.err.println("Error joining with Teller " + i + ": " + e);
             }
         }
+        
         System.out.println("All tellers have finished their shifts. Bank is closed.");
     }
 }
