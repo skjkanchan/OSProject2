@@ -1,9 +1,3 @@
-# Vigenere Cypher Encryption Tool
-This is a project that allows you to encrypt and decrypt words using the Vigenere Cypher. This project contains 3 programs: The Driver, Encrypt, and Logger. 
-
-# The Driver Program
-This is the program that interacts with the user. It displays a menu of commands and functionalities and allows the user to input whichever command they choose. This includes setting a password for encryption/decryption, and then encrypting a word, decrypting a word, showing the history of words, and quitting the program. The user can set their password and then input any words they desire to encrypt or decrypt with that password. They are also given the option to encrypt/decrypt words from the history which makes it more convenient to decrypt a word you previously encrypted or just re-use words. 
-
 # The Bank Simulation
 This is a program that runs a simulation of the bank. It includes 3 bank tellers that work at the bank and process customer transactions. It also includes 50 customers that come through the bank. This program simulations the opening of the bank when the tellers are ready, the customers entering and lining up at the bank, the customers visiting a teller, the transactions getting processed, and the customers leaving the bank. In this simulation, the bank closes once all customers have been served. 
 This program is implemented using Threads and Semaphores. The threads represent the tellers and customers and the semaphores control access to certain resources like shared data, the amount of poeple entering the bank or safe, and the communication between the tellers and the customers.
